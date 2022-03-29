@@ -13,6 +13,7 @@ class RandomPlan:
         self.currentState = initialState
         self.goalPos = goal
         self.actions = []
+        self.visStates = []
 
     
     def setWalls(self, walls):
@@ -30,12 +31,10 @@ class RandomPlan:
     def updateCurrentState(self, state):
          self.currentState = state
 
-    def isPossibleToMove(self, toState):
-        """Verifica se eh possivel ir da posicao atual para o estado (lin, col) considerando 
-        a posicao das paredes do labirinto e movimentos na diagonal
+    def isInside(self, toState):
+        """Verifica se o agente nao vai sair do labirinto
         @param toState: instancia da classe State - um par (lin, col) - que aqui indica a posicao futura 
         @return: True quando é possivel ir do estado atual para o estado futuro """
-
 
         ## vai para fora do labirinto
         if (toState.col < 0 or toState.row < 0):
@@ -46,10 +45,19 @@ class RandomPlan:
         
         if len(self.walls) == 0:
             return True
+  
+        return True
+
+    def hitWall(self, toState):
+        """Verifica se eh possivel ir da posicao atual para o estado (lin, col) considerando 
+        a posicao das paredes do labirinto e movimentos na diagonal
+        @param toState: instancia da classe State - um par (lin, col) - que aqui indica a posicao futura 
+        @return: True quando é possivel ir do estado atual para o estado futuro """
+
         
         ## vai para cima de uma parede
         if (toState.row, toState.col) in self.walls:
-            return False
+            return True
 
         # vai na diagonal? Caso sim, nao pode ter paredes acima & dir. ou acima & esq. ou abaixo & dir. ou abaixo & esq.
         delta_row = toState.row - self.currentState.row
@@ -58,11 +66,53 @@ class RandomPlan:
         ## o movimento eh na diagonal
         if (delta_row !=0 and delta_col != 0):
             if (self.currentState.row + delta_row, self.currentState.col) in self.walls and (self.currentState.row, self.currentState.col + delta_col) in self.walls:
-                return False
+                return True
+        
+        return False
+
+    def isVisited(self, toState):
+        """Verifica se o estado já foi visitado
+        @param toState: instancia da classe State - um par (lin, col) - que aqui indica a posicao futura 
+        @return: True quando é possivel ir do estado atual para o estado futuro """
+
+        
+        ## vai para a proxima posicao
+        if (toState.row, toState.col) in self.visStates:
+            print("Estado já visitado")
+            return False
+
+        if len(self.visStates) == 0:
+            return True
         
         return True
 
     def randomizeNextPosition(self):
+         """ Sorteia uma direcao e calcula a posicao futura do agente 
+         @return: tupla contendo a acao (direcao) e o estado futuro resultante da movimentacao """
+         
+         possibilities = ["N", "S", "L", "O", "NE", "NO", "SE", "SO"]
+         movePos = { "N" : (-1, 0),
+                    "S" : (1, 0),
+                    "L" : (0, 1),
+                    "O" : (0, -1),
+                    "NE" : (-1, 1),
+                    "NO" : (-1, -1),
+                    "SE" : (1, 1),
+                    "SO" : (1, -1),
+                    "Hit": (0, 0)}
+
+         rand = randint(0, 7)
+         movDirection = possibilities[rand]
+         state = State(self.currentState.row + movePos[movDirection][0], self.currentState.col + movePos[movDirection][1])
+
+         # Testa se bateu na parede
+         if(self.hitWall(state) == True):
+            movDirection = "Hit"
+            state = State(self.currentState.row + movePos[movDirection][0], self.currentState.col + movePos[movDirection][1])
+
+         return movDirection, state
+
+    def chooseNextPosition(self):
          """ Sorteia uma direcao e calcula a posicao futura do agente 
          @return: tupla contendo a acao (direcao) e o estado futuro resultante da movimentacao """
          possibilities = ["N", "S", "L", "O", "NE", "NO", "SE", "SO"]
@@ -73,26 +123,33 @@ class RandomPlan:
                     "NE" : (-1, 1),
                     "NO" : (-1, -1),
                     "SE" : (1, 1),
-                    "SO" : (1, -1)}
+                    "SO" : (1, -1),
+                    "Hit": (0, 0)}
 
          rand = randint(0, 7)
          movDirection = possibilities[rand]
          state = State(self.currentState.row + movePos[movDirection][0], self.currentState.col + movePos[movDirection][1])
 
+         # Testa se bateu na parede
+         if(self.hitWall(state) == True):
+            movDirection = "Hit"
+            state = State(self.currentState.row + movePos[movDirection][0], self.currentState.col + movePos[movDirection][1])
+
          return movDirection, state
 
-
-    def chooseAction(self):
+    def chooseAction(self, visStates):
         """ Escolhe o proximo movimento de forma aleatoria. 
         Eh a acao que vai ser executada pelo agente. 
         @return: tupla contendo a acao (direcao) e uma instância da classe State que representa a posição esperada após a execução
         """
+        self.visStates = visStates
 
         ## Tenta encontrar um movimento possivel dentro do tabuleiro 
         result = self.randomizeNextPosition()
-
-        while not self.isPossibleToMove(result[1]):
-            result = self.randomizeNextPosition()
+        
+        # Testa se o proximo movimento esta dentro do labirinto
+        while not (self.isInside(result[1]) & self.isVisited(result[1])):
+                result = self.randomizeNextPosition()
 
         return result
 

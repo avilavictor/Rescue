@@ -27,6 +27,8 @@ class AgentRnd:
        
         self.model = model
 
+        self.visitedStates = []
+
         ## Obtem o tempo que tem para executar
         self.tl = configDict["Tl"]
         print("Tempo disponivel: ", self.tl)
@@ -92,6 +94,9 @@ class AgentRnd:
 
         ## Redefine o estado atual do agente de acordo com o resultado da execução da ação do ciclo anterior
         self.currentState = self.positionSensor()
+        pos = self.model.agentPos
+        if (pos[0],pos[1]) not in self.visitedStates:
+            self.visitedStates.append((pos[0],pos[1]))
         self.plan.updateCurrentState(self.currentState) # atualiza o current state no plano
         print("Ag cre que esta em: ", self.currentState)
 
@@ -121,13 +126,22 @@ class AgentRnd:
 
         ## Define a proxima acao a ser executada
         ## currentAction eh uma tupla na forma: <direcao>, <state>
-        result = self.plan.chooseAction()
-        print("Ag deliberou pela acao: ", result[0], " o estado resultado esperado é: ", result[1])
+        result = self.plan.chooseAction(self.visitedStates)
+
+        if(result[0] == "Hit"):
+            print("Ag bateu em uma parede, ele continuará na posição:", result[1])
+        else:
+            print("Ag deliberou pela acao: ", result[0], " o estado resultado esperado é: ", result[1])
+            
 
         ## Executa esse acao, atraves do metodo executeGo 
         self.executeGo(result[0])
         self.previousAction = result[0]
-        self.expectedState = result[1]       
+        self.expectedState = result[1]
+
+        if(self.tl <= 0):
+            print ("Tempo de busca esgotado")
+            return -1       
 
         return 1
 
