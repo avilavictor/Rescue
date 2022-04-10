@@ -14,7 +14,7 @@ from random import randint
 from randomPlan import RandomPlan
 
 ##Importa o Planner
-sys.path.append('pkg\planner')
+sys.path.append('pkg/planner')
 from planner import Planner
 
 ## Classe que define o Agente
@@ -26,8 +26,6 @@ class AgentRnd:
         """
        
         self.model = model
-
-        self.visitedStates = []
 
         ## Obtem o tempo que tem para executar
         self.tl = configDict["Tl"]
@@ -95,8 +93,6 @@ class AgentRnd:
         ## Redefine o estado atual do agente de acordo com o resultado da execução da ação do ciclo anterior
         self.currentState = self.positionSensor()
         pos = self.model.agentPos
-        if (pos[0],pos[1]) not in self.visitedStates:
-            self.visitedStates.append((pos[0],pos[1]))
         self.plan.updateCurrentState(self.currentState) # atualiza o current state no plano
         print("Ag cre que esta em: ", self.currentState)
 
@@ -126,7 +122,7 @@ class AgentRnd:
 
         ## Define a proxima acao a ser executada
         ## currentAction eh uma tupla na forma: <direcao>, <state>
-        result = self.plan.chooseAction(self.visitedStates)
+        result = self.plan.chooseAction()
 
         if(result[0] == "Hit"):
             print("Ag bateu em uma parede, ele continuará na posição:", result[1])
